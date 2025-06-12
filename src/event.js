@@ -20,6 +20,14 @@ MaidEvents.interactMaid(event => {
     }
 });
 
+// 当然，交互事件可以传入物品参数，那么仅在玩家手持该物品时触发
+MaidEvents.interactMaid("minecraft:diamond", event => {
+    let maid = event.getMaid();
+    maid.chatBubbleManager.addTextChatBubble("我喜欢钻石！");
+    // 取消事件后续的操作，这样可以避免打开女仆 GUI 界面
+    event.cancel();
+});
+
 // 女仆工作模式启用条件的修改，这是一个双端都需要触发的事件
 // 如果只在服务端脚本中添加，不在客户端脚本中添加，那么在切换界面不会显示锁住的图标
 // 取消该事件则表明当前 task 无法启用
@@ -35,6 +43,16 @@ MaidEvents.maidTaskEnable(event => {
         // 前一个参数是语言文件 key 的一部分，你还需要添加语言文件 task.touhou_little_maid.fishing.enable_condition.need_level_2
         // 后一个参数就是控制显示文本的颜色的，当返回 true 显示为绿色，返回 false 显示为红色
         event.addEnableConditionDesc("need_level_2", m => m.favorabilityManager.getLevel() >= 2);
+        // 取消该事件则表明当前 task 无法启用
+        event.cancel();
+    }
+});
+
+// 当然，maidTaskEnable 事件也是可以传入一个任务 UID 的
+MaidEvents.maidTaskEnable("touhou_little_maid:torch", event => {
+    let maid = event.getEntityMaid();
+    if (maid.favorabilityManager.getLevel() < 1) {
+        event.addEnableConditionDesc("need_level_1", m => m.favorabilityManager.getLevel() >= 1);
         // 取消该事件则表明当前 task 无法启用
         event.cancel();
     }
@@ -60,4 +78,11 @@ MaidEvents.maidDamage(event => {
         // 取消伤害事件
         event.cancel();
     }
+});
+
+// 伤害事件也是可以传入一个伤害类型 ID 的，这里我们直接取消女仆的熔岩伤害
+// 原版伤害类型 ID 可以在这里找到：https://zh.minecraft.wiki/w/%E4%BC%A4%E5%AE%B3%E7%B1%BB%E5%9E%8B表格中的第一列加上 minecraft 前缀
+MaidEvents.maidDamage("minecraft:lava", event => {
+    // 取消伤害事件
+    event.cancel();
 });
