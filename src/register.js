@@ -61,8 +61,7 @@ MaidRegister.TASK
     .rangedAttackTask("test:tnt_attack", "minecraft:tnt")
     // 攻击武器的判断（必填，否则女仆不执行任何攻击逻辑）
     .isWeapon((maid, stack) => {
-        // 武器必须是可以 use 的物品
-        return stack.is("minecraft:bow") &&
+        return stack.is("minecraft:stick") &&
             // 并且女仆的背包里有 TNT
             MaidItemsUtil.isStackIn(maid, item => item.is("minecraft:tnt"));
     })
