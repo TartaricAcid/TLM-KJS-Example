@@ -73,6 +73,8 @@ MaidRegister.TASK
     .projectileRange(32)
     // 攻击蓄力时间（可选，默认为 20 tick）
     .chargeDurationTick(10)
+    // 女仆移动速度（可选，默认为 0.5）
+    .walkSpeed(0.4)
     // 执行远程攻击逻辑，必填项，否则啥也不干
     .performRangedAttack(
         /**
