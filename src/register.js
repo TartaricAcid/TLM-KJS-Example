@@ -109,3 +109,58 @@ MaidRegister.TASK
             // 消耗一个 TNT 物品
             MaidItemsUtil.getStack(maid, item => item.is("minecraft:tnt")).shrink(1);
         });
+
+// 种田 task，其实不限于种田，也可以是挖矿、砍树等
+// 比如挖矿，你就不写 isSeed canPlant plant 等方法
+// 这里我们演示一个简单的种田任务，女仆会在沙子上放置枯萎的灌木，打掉钻石矿
+MaidRegister.TASK.farmTask("test:dead_bush", "minecraft:dead_bush")
+    // 判断是否是种子，用于后续的 canPlant 和 plant 方法传参
+    .isSeed(stack => stack.is("minecraft:dead_bush"))
+    // 当距离目标方块小于等于 2 格时才会执行种植/收回逻辑
+    .closeEnoughDist(2)
+    // 检查目标上面是否有两格空间能容纳女仆到达
+    .checkCropPosAbove(true).canPlant(
+    /**
+     * @param {Internal.EntityMaid} maid - 女仆实体
+     * @param {BlockPos} blockPos - 作物基底位置，比如耕地所处的位置，作物就应该在上一格进行放置
+     * @param {BlockState} blockState - 作物基底状态
+     * @param {ItemStack} seed - 当前选中的种子
+     * @return {boolean} - 是否可以种植
+     */
+    (maid, blockPos, blockState, seed) => {
+        // 这里我们让枯萎的灌木只能放在沙子上，并且沙子上面有空间
+        return blockState.is("minecraft:sand") && maid.level.getBlockState(blockPos.above()).isAir();
+    }).plant(
+    /**
+     * @param {Internal.EntityMaid} maid - 女仆实体
+     * @param {BlockPos} blockPos - 作物基底位置，比如耕地所处的位置，作物就应该在上一格进行放置
+     * @param {BlockState} blockState - 作物基底状态
+     * @param {ItemStack} seed - 当前选中的种子
+     * @return {ItemStack} - 返回种子物品，通常是消耗一个种子后返回剩余的种子
+     */
+    (maid, blockPos, blockState, seed) => {
+        // 注意：这里的 blockPos 是作物基底位置，比如沙子的位置，枯萎的灌木应该放在上面
+        let checkPos = blockPos.above();
+        // placeItemBlock 方法会自动扣除物品，无需 shrink
+        // 但这个方法只能放置 ItemBlock 类型的方块，并且会判断实体碰撞箱
+        maid.placeItemBlock(checkPos, seed)
+        return seed;
+    }).canHarvest(
+    /**
+     @param {Internal.EntityMaid} maid - 女仆实体
+     @param {BlockPos} blockPos - 打算破坏方块的位置
+     @param {BlockState} blockState - 打算破坏的方块状态
+     @return {boolean} - 是否可以破坏
+     */
+    (maid, blockPos, blockState) => {
+        // 破坏钻石矿
+        return blockState.is("minecraft:diamond_ore");
+    }).harvest(
+    /**
+     * @param {Internal.EntityMaid} maid - 女仆实体
+     * @param {BlockPos} blockPos - 打算破坏方块的位置
+     * @param {BlockState} blockState - 打算破坏的方块状态
+     */
+    (maid, blockPos, blockState) => {
+        maid.destroyBlock(blockPos)
+    })
