@@ -164,3 +164,35 @@ MaidRegister.TASK.farmTask("test:dead_bush", "minecraft:dead_bush")
     (maid, blockPos, blockState) => {
         maid.destroyBlock(blockPos)
     })
+
+// 接下来是走向方块的 Task，这个比上一个 Farm 更适合挖矿，砍树等逻辑，你也可把它设计成走向某个机器，执行机器的操作逻辑
+MaidRegister.TASK.walkToBlockTask("test:walk_to_block", "minecraft:iron_ore")
+    // 搜索范围为女仆的工作范围，我们只能自定义搜索的垂直高度
+    // 但是此数值不宜过大，否则遍历方块会带来严重的性能消耗
+    // 这是一个可选参数，默认是填写的 2，也就是搜索 -2 到 2 格的高度范围
+    .setVerticalSearchRange(2)
+    // 必填项目，否则不进行搜索。开始进行搜索之前的判断条件，请在必要时在进行搜索，减少性能消耗
+    .setSearchCondition(maid => maid.mainHandItem.is("minecraft:iron_pickaxe"))
+    // 必填项目，这里我们让搜索到的方块是铁矿石
+    .setBlockPredicate(
+        /**
+         * @param {Internal.EntityMaid} maid - 女仆实体
+         * @param {BlockPos} blockPos - 搜索的方块位置
+         */
+        (maid, blockPos) => {
+            return maid.level.getBlockState(blockPos).is("minecraft:iron_ore");
+        })
+    // 选填内容，默认为 2。当距离目标方块小于等于 2 格时才会执行后续逻辑
+    .setCloseEnoughDist(2)
+    // 最后的到达逻辑，必填内容，否则不执行任何逻辑
+    .setArriveAction(
+        /**
+         * @param {Internal.EntityMaid} maid - 女仆实体
+         * @param {BlockPos} blockPos - 打算执行逻辑的方块的位置
+         */
+        (maid, blockPos) => {
+            // 直接破坏方块
+            maid.destroyBlock(blockPos);
+            // 消耗一点耐久
+            maid.mainHandItem.hurtAndBreak(1, maid, m => m.broadcastBreakEvent("main_hand"));
+        })
