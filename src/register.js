@@ -4,12 +4,17 @@
 // 注册饰品
 // 第二个参数可以不写，里面是 tick 回调函数，当女仆穿戴此饰品时，每 tick 会执行里面的方法
 // 这个返回值就是饰品对象，可以存起来，用于其他事件当中（因为寻找饰品需要这个参数）
-let GOLDEN_AXE_BAUBLE = MaidRegister.BAUBLE.bind("minecraft:golden_axe", (maid, stack) => {
-    // 每 150 tick 检查一次，减少性能消耗
-    if (maid.level.server?.tickCount % 150 === 0) {
-        maid.potionEffects.add("minecraft:glowing", 200, 1);
-    }
-});
+let GOLDEN_AXE_BAUBLE = MaidRegister.BAUBLE.bind("minecraft:golden_axe",
+    /**
+     * @param {Internal.EntityMaid} maid - 女仆实体
+     * @param {Internal.ItemStack} stack - 饰品绑定的物品对象
+     */
+    (maid, stack) => {
+        // 每 150 tick 检查一次，减少性能消耗
+        if (maid.level.server?.tickCount % 150 === 0) {
+            maid.potionEffects.add("minecraft:glowing", 200, 1);
+        }
+    });
 
 // 注册物品提示，当你手持物品对着女仆时，就会在屏幕提示对应文本
 MaidRegister.TIPS.tips(overlay => {
@@ -18,6 +23,12 @@ MaidRegister.TIPS.tips(overlay => {
     // 当然，还有高级写法
     // 当手持苹果数量超过 2 时才显示提示
     overlay.addSpecialTips("tips.test.apple",
+        /**
+         * @param {Internal.ItemStack} stack - 饰品绑定的物品对象
+         * @param {Internal.EntityMaid} maid - 女仆实体
+         * @param {Internal.Player} player - 玩家实体
+         * @return {boolean} - 是否显示提示
+         */
         (stack, maid, player) => stack.is("minecraft:apple") && stack.getCount() > 2);
 });
 
@@ -178,6 +189,7 @@ MaidRegister.TASK.walkToBlockTask("test:walk_to_block", "minecraft:iron_ore")
         /**
          * @param {Internal.EntityMaid} maid - 女仆实体
          * @param {BlockPos} blockPos - 搜索的方块位置
+         * @return {boolean} - 是否符合搜索条件
          */
         (maid, blockPos) => {
             return maid.level.getBlockState(blockPos).is("minecraft:iron_ore");
@@ -195,4 +207,39 @@ MaidRegister.TASK.walkToBlockTask("test:walk_to_block", "minecraft:iron_ore")
             maid.destroyBlock(blockPos);
             // 消耗一点耐久
             maid.mainHandItem.hurtAndBreak(1, maid, m => m.broadcastBreakEvent("main_hand"));
+        })
+
+MaidRegister.TASK.walkToLivingEntityTask("test:walk_to_living_entity", "minecraft:bowl")
+    // 选填内容，默认为 2。当距离目标实体小于等于 2 格时才会执行后续逻辑
+    .setCloseEnoughDist(2)
+    // 必填项目，开始进行实体搜索之前的判断条件，请在必要时再进行搜索，减少性能消耗
+    .setStartSearchPredicate(maid => maid.mainHandItem.is("minecraft:bowl"))
+    // 必填项目，这里我们让搜索到的实体是蘑菇牛
+    .setEntityPredicate(
+        /**
+         * @param {Internal.EntityMaid} maid - 女仆实体
+         * @param {Internal.LivingEntity} entity - 待检查的实体
+         * @return {boolean} - 是否符合搜索条件
+         */
+        (maid, entity) => {
+            return entity.type === "minecraft:mooshroom";
+        })
+    // 最后到达实体附近需要执行的逻辑，必填内容，否则不执行任何逻辑
+    .setArriveAction(
+        /**
+         * @param {Internal.EntityMaid} maid - 女仆实体
+         * @param {Internal.LivingEntity} entity - 待检查的实体
+         */
+        (maid, entity) => {
+            if (maid.mainHandItem.is("minecraft:bowl")) {
+                // 给女仆蘑菇煲物品
+                MaidItemsUtil.giveItemToMaid(maid, "minecraft:mushroom_stew");
+                // 扣掉一个手持的碗
+                maid.mainHandItem.shrink(1);
+                // 女仆挥舞一下手臂
+                maid.swing();
+                // 播放音效
+                let pos = maid.position();
+                maid.level.playSound(null, pos.x, pos.y, pos.z, "entity.mooshroom.milk", "neutral", 1, 1);
+            }
         })
