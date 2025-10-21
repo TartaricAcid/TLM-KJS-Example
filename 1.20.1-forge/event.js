@@ -58,6 +58,50 @@ MaidEvents.maidTaskEnable("touhou_little_maid:torch", event => {
     }
 });
 
+// ===========================================================================
+//                     1.4.2 及以后版本女仆模组，实现饰品的方式
+// ===========================================================================
+
+// 这里我们新建一个全新的饰品
+// 该饰品绑定原版的铁镐
+let IRON_PICKAXE_BAUBLE = MaidRegister.BAUBLE.bind("minecraft:iron_pickaxe");
+
+// 等会修改生命值所需要的类
+let AttributeModifierCls = Java.loadClass("net.minecraft.world.entity.ai.attributes.AttributeModifier")
+let OperationCls = Java.loadClass("net.minecraft.world.entity.ai.attributes.AttributeModifier$Operation")
+
+// 实体的属性修改器是以 UUID 来标识的，所以需要一个这个，这里我们随机弄一个，你也可以自己生成一个
+let IRON_PICKAXE_UUID = UUID.fromString("35c5574f-9d1e-4534-9e77-68b5051b87dc")
+
+// 我们可以给铁镐直接附加一堆内容
+IRON_PICKAXE_BAUBLE
+    // 当女仆装备上该饰品时触发
+    .triggerPutOn((maid, baubleStack) => {
+        let maxHealth = maid.getAttribute('minecraft:generic.max_health');
+        // 我们直接让女仆血量翻 3 倍
+        let healthModifier = new AttributeModifierCls(IRON_PICKAXE_UUID, "Iron Pickaxe Bauble Health Boost", 3, OperationCls.MULTIPLY_TOTAL);
+        // 永久添加使用 addPermanentModifier
+        maxHealth.addPermanentModifier(healthModifier)
+    })
+    // 当女仆脱下该饰品时清除此 Modifier
+    .triggerTakeOff((maid, baubleStack) => {
+        let maxHealth = maid.getAttribute('minecraft:generic.max_health');
+        // 直接按照先前的 UUID 来移除即可
+        maxHealth.removeModifier(IRON_PICKAXE_UUID);
+    })
+    // 每当女仆受到伤害时触发
+    .triggerInjured((maid, baubleStack, damageSource, damageAmount) => {
+        // 消耗一点耐久
+        baubleStack.hurtAndBreak(1, maid, e => maid.sendItemBreakMessage(baubleStack));
+        // 取消伤害事件
+        // 返回 true 则取消伤害，返回 false 则不取消伤害
+        return true;
+    })
+
+// ===========================================================================
+//                     1.4.1 及以前版本女仆模组，实现饰品的方式
+// ===========================================================================
+
 // 这里我们新建一个全新的饰品
 // 该饰品绑定原版的铁斧
 let IRON_AXE_BAUBLE = MaidRegister.BAUBLE.bind("minecraft:iron_axe");
